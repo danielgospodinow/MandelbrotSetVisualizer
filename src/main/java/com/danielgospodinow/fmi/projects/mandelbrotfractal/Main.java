@@ -1,7 +1,10 @@
 package com.danielgospodinow.fmi.projects.mandelbrotfractal;
 
 import com.danielgospodinow.fmi.projects.mandelbrotfractal.image.Image;
-import org.apache.commons.math3.complex.Complex;
+import com.danielgospodinow.fmi.projects.mandelbrotfractal.utils.Bounds;
+
+import java.time.Duration;
+import java.time.Instant;
 
 public class Main {
 
@@ -18,36 +21,15 @@ public class Main {
     private static final short MAX_ITERATIONS = 255;
 
     public static void main(String[] args) {
-        Image image = new Image(WIDTH, HEIGHT);
+        Mandelbrot mandelbrot = new Mandelbrot(WIDTH, HEIGHT, MAX_ITERATIONS, DISTANCE, new Bounds<>(X_MIN, X_MAX, Y_MIN, Y_MAX));
 
-        for (int y = 0; y < HEIGHT; ++y) {
-            for (int x = 0; x < WIDTH; ++x) {
-                Complex currentNum = getComplexFromPixel(x, y);
+        Instant start = Instant.now();
+        Image mandelbrotImage = mandelbrot.getImage();
+        Instant finish = Instant.now();
 
-                int iterations = getMandelbrotIterations(currentNum);
-                if(iterations < MAX_ITERATIONS) {
-                    image.setPixelRGBA(x, y, 255, iterations * 255, iterations * 50, iterations * 20);
-                }
-            }
-        }
+        long timeElapsed = Duration.between(start, finish).toMillis();
+        System.out.println(String.format("Time to generate an image: %.3f", (float) timeElapsed / 1000));
 
-        image.exportImage("mandelbrot.png");
-    }
-
-    private static int getMandelbrotIterations(Complex number) {
-        int i = MAX_ITERATIONS;
-        Complex complexIterator = number;
-
-        while ((i-- > 0) && (complexIterator.abs() <= DISTANCE)) {
-            complexIterator = complexIterator.pow(2).multiply(Math.pow(Math.E, complexIterator.pow(2).abs())).add(number);
-        }
-
-        return MAX_ITERATIONS - i;
-    }
-
-    private static Complex getComplexFromPixel(int x, int y) {
-        float x0 = X_MIN + (X_MAX - X_MIN) * ((float) x / WIDTH);
-        float y0 = Y_MIN + (Y_MAX - Y_MIN) * ((float) y / HEIGHT);
-        return new Complex(x0, y0);
+        mandelbrotImage.exportImage("mandelbrot.png");
     }
 }
