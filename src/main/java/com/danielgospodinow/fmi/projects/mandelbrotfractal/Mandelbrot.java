@@ -2,7 +2,14 @@ package com.danielgospodinow.fmi.projects.mandelbrotfractal;
 
 import com.danielgospodinow.fmi.projects.mandelbrotfractal.image.Image;
 import com.danielgospodinow.fmi.projects.mandelbrotfractal.utils.Bounds;
+import com.danielgospodinow.fmi.projects.mandelbrotfractal.utils.MandelbrotEntity;
 import org.apache.commons.math3.complex.Complex;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Mandelbrot {
 
@@ -20,37 +27,61 @@ public class Mandelbrot {
         this.bounds = bounds;
     }
 
-    public Image getImage() {
-        Image image = new Image(this.width, this.height);
+    public Image getImage(int totalWorkers) {
+        final int totalJobsPerWorker = 128;
 
-        for (int y = 0; y < this.height; ++y) {
-            for (int x = 0; x < this.width; ++x) {
-                Complex currentNum = getComplexFromPixel(x, y);
+        Image image = new Image(width, height);
+        ExecutorService workersPool = Executors.newFixedThreadPool(totalWorkers);
+        List<List<MandelbrotEntity>> mandelbrotBatches = getMandelbrotBatches(totalJobsPerWorker);
 
-                int iterations = getMandelbrotIterations(currentNum);
-                if (iterations < this.maxIterations) {
-                    image.setPixelRGBA(x, y, 255, iterations * 255, iterations * 50, iterations * 20);
-                }
-            }
-        }
-
+        mandelbrotBatches.forEach(batch -> workersPool.submit(new MandelbrotRunnable(image, batch, maxIterations, distance)));
+        awaitExecutorTermination(workersPool);
         return image;
     }
 
-    private int getMandelbrotIterations(Complex number) {
-        int i = this.maxIterations;
-        Complex complexIterator = number;
+    public Image getImage() {
+        return getImage(1);
+    }
 
-        while ((i-- > 0) && (complexIterator.abs() <= this.distance)) {
-            complexIterator = complexIterator.pow(2).multiply(Math.pow(Math.E, complexIterator.pow(2).abs())).add(number);
+    private List<List<MandelbrotEntity>> getMandelbrotBatches(int workerCapacity) {
+        List<List<MandelbrotEntity>> batches = new LinkedList<>();
+        List<MandelbrotEntity> allEntities = new LinkedList<>();
+
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                Complex currentNum = getComplexFromPixel(x, y);
+                allEntities.add(new MandelbrotEntity(x, y, currentNum));
+            }
         }
 
-        return this.maxIterations - i;
+        while (!allEntities.isEmpty()) {
+            List<MandelbrotEntity> currentBatch = new LinkedList<>();
+            for (int i = 0; i < workerCapacity && !allEntities.isEmpty(); ++i) {
+                currentBatch.add(allEntities.remove(0));
+            }
+
+            batches.add(currentBatch);
+        }
+
+        return batches;
     }
 
     private Complex getComplexFromPixel(int x, int y) {
-        float x0 = this.bounds.getxMin() + (this.bounds.getxMax() - this.bounds.getxMin()) * ((float) x / this.width);
-        float y0 = this.bounds.getyMin() + (this.bounds.getyMax() - this.bounds.getyMin()) * ((float) y / this.height);
+        float x0 = bounds.getMinX() + (bounds.getMaxX() - bounds.getMinX()) * ((float) x / width);
+        float y0 = bounds.getMinY() + (bounds.getMaxY() - bounds.getMinY()) * ((float) y / height);
         return new Complex(x0, y0);
+    }
+
+    private static void awaitExecutorTermination(ExecutorService workersSpawner) {
+        workersSpawner.shutdown();
+        try {
+            if (!workersSpawner.awaitTermination(1, TimeUnit.MINUTES)) {
+                workersSpawner.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            workersSpawner.shutdownNow();
+            System.out.println("Image generation was interrupted!");
+            e.printStackTrace();
+        }
     }
 }

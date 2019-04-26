@@ -14,19 +14,19 @@ public class Bounds <T> {
         this.yMax = yMax;
     }
 
-    public T getxMax() {
+    public T getMaxX() {
         return this.xMax;
     }
 
-    public T getxMin() {
+    public T getMinX() {
         return this.xMin;
     }
 
-    public T getyMax() {
+    public T getMaxY() {
         return this.yMax;
     }
 
-    public T getyMin() {
+    public T getMinY() {
         return this.yMin;
     }
 }

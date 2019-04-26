@@ -17,7 +17,7 @@ public class Image {
         this.image.setRGB(x, y, (a << 24) | (r << 16) | (g << 8) | b);
     }
 
-    public void exportImage(String imageFilePath) {
+    public void export(String imageFilePath) {
         try {
             File fileImage = new File(imageFilePath);
             ImageIO.write(this.image, imageFilePath.substring(imageFilePath.lastIndexOf(".") + 1), fileImage);
