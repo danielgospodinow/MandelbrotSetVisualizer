@@ -5,6 +5,9 @@ import com.danielgospodinow.fmi.projects.mandelbrotfractal.utils.Bounds;
 import com.danielgospodinow.fmi.projects.mandelbrotfractal.utils.MandelbrotEntity;
 import org.apache.commons.math3.complex.Complex;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -27,24 +30,34 @@ public class Mandelbrot {
         this.bounds = bounds;
     }
 
-    public Image getImage(int totalWorkers) {
-        final int totalJobsPerWorker = 128;
+    public Image getImage(int maxWorkers, int granularityLevel) {
+        final int jobsPerWorker = ((width * height) / (maxWorkers * granularityLevel));
 
         Image image = new Image(width, height);
-        ExecutorService workersPool = Executors.newFixedThreadPool(totalWorkers);
-        List<List<MandelbrotEntity>> mandelbrotBatches = getMandelbrotBatches(totalJobsPerWorker);
+
+        ExecutorService workersPool = Executors.newFixedThreadPool(maxWorkers);
+        List<List<MandelbrotEntity>> mandelbrotBatches = getMandelbrotBatches(jobsPerWorker);
+
+        /* Start profiling */
+        Instant start = Instant.now();
 
         mandelbrotBatches.forEach(batch -> workersPool.submit(new MandelbrotRunnable(image, batch, maxIterations, distance)));
         awaitExecutorTermination(workersPool);
+
+        /* End profiling */
+        Instant finish = Instant.now();
+        long timeElapsed = Duration.between(start, finish).toMillis();
+        System.out.println((float) timeElapsed / 1000);
+
         return image;
     }
 
     public Image getImage() {
-        return getImage(1);
+        return getImage(1, 1);
     }
 
     private List<List<MandelbrotEntity>> getMandelbrotBatches(int workerCapacity) {
-        List<List<MandelbrotEntity>> batches = new LinkedList<>();
+        List<List<MandelbrotEntity>> batches = new ArrayList<>();
         List<MandelbrotEntity> allEntities = new LinkedList<>();
 
         for (int y = 0; y < height; ++y) {
@@ -55,7 +68,7 @@ public class Mandelbrot {
         }
 
         while (!allEntities.isEmpty()) {
-            List<MandelbrotEntity> currentBatch = new LinkedList<>();
+            List<MandelbrotEntity> currentBatch = new ArrayList<>();
             for (int i = 0; i < workerCapacity && !allEntities.isEmpty(); ++i) {
                 currentBatch.add(allEntities.remove(0));
             }
