@@ -12,7 +12,7 @@ public class Image {
 
     public Image(int width, int height) {
         this.image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        this.imageRGBArray = new int[height][width];
+        this.imageRGBArray = new int[width][height];
     }
 
     public void setPixelRGBA(int x, int y, int a, int r, int g, int b) {
@@ -20,8 +20,8 @@ public class Image {
     }
 
     public void export(String imageFilePath) {
-        for (int y = 0; y < this.image.getHeight(); ++y) {
-            for (int x = 0; x < this.image.getWidth(); ++x) {
+        for (int x = 0; x < this.image.getWidth(); ++x) {
+            for (int y = 0; y < this.image.getHeight(); ++y) {
                 this.image.setRGB(x, y, this.imageRGBArray[x][y]);
             }
         }
