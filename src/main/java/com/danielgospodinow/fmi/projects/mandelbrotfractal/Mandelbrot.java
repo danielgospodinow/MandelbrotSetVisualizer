@@ -16,17 +16,16 @@ import java.util.concurrent.TimeUnit;
 
 public class Mandelbrot {
 
+    private static final int DISTANCE = 8;
+    private static final int MAX_ITERATIONS = 150;
+
     private final int width;
     private final int height;
-    private final int maxIterations;
-    private final float distance;
     private final Bounds<Float> bounds;
 
-    public Mandelbrot(int width, int height, int maxIterations, float distance, Bounds<Float> bounds) {
+    public Mandelbrot(int width, int height, Bounds<Float> bounds) {
         this.width = width;
         this.height = height;
-        this.maxIterations = maxIterations;
-        this.distance = distance;
         this.bounds = bounds;
     }
 
@@ -38,16 +37,14 @@ public class Mandelbrot {
         ExecutorService workersPool = Executors.newFixedThreadPool(maxWorkers);
         List<List<MandelbrotEntity>> mandelbrotBatches = getMandelbrotBatches(jobsPerWorker);
 
-        /* Start profiling */
         Instant start = Instant.now();
 
-        mandelbrotBatches.forEach(batch -> workersPool.submit(new MandelbrotRunnable(image, batch, maxIterations, distance)));
+        mandelbrotBatches.forEach(batch -> workersPool.submit(new MandelbrotRunnable(image, batch, MAX_ITERATIONS, DISTANCE)));
         awaitExecutorTermination(workersPool);
 
-        /* End profiling */
         Instant finish = Instant.now();
         long timeElapsed = Duration.between(start, finish).toMillis();
-        System.out.println((float) timeElapsed / 1000);
+        System.out.println(String.format("%.3f", (float) timeElapsed / 1000));
 
         return image;
     }

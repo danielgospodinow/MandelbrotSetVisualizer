@@ -1,38 +1,21 @@
 package com.danielgospodinow.fmi.projects.mandelbrotfractal;
 
 import com.danielgospodinow.fmi.projects.mandelbrotfractal.image.Image;
-import com.danielgospodinow.fmi.projects.mandelbrotfractal.utils.Bounds;
+import com.danielgospodinow.fmi.projects.mandelbrotfractal.utils.MandelbrotCommandOptions;
 import org.apache.commons.cli.*;
 
 public class Main {
 
-    private static final int WIDTH = 2000;
-    private static final int HEIGHT = 2000;
-
-    private static final float X_MIN = -2.0f;
-    private static final float X_MAX = 2.0f;
-    private static final float Y_MIN = -2.0f;
-    private static final float Y_MAX = 2.0f;
-
-    private static final int DISTANCE = 4;
-
-    private static final int MAX_ITERATIONS = 100;
-
-    private static final int INIT_THREADS = 1;
-    private static final int INIT_GRANULARITY = 8;
-
     public static void main(String[] args) {
-        CommandLine commandLine = getCommandLineParser(args);
+        MandelbrotCommandOptions options = getOptions(args);
 
-        int maxThreads = (commandLine.hasOption("t") ? Integer.parseInt(commandLine.getOptionValue("t")) : INIT_THREADS);
-        int granularityLevel = (commandLine.hasOption("g") ? Integer.parseInt(commandLine.getOptionValue("g")) : INIT_GRANULARITY);
+        Mandelbrot mandelbrot = new Mandelbrot(options.getImageWidth(), options.getImageHeight(), options.getBounds());
 
-        Mandelbrot mandelbrot = new Mandelbrot(WIDTH, HEIGHT, MAX_ITERATIONS, DISTANCE, new Bounds<>(X_MIN, X_MAX, Y_MIN, Y_MAX));
-        Image mandelbrotImage = mandelbrot.getImage(maxThreads, granularityLevel);
-        mandelbrotImage.export("mandelbrot.png");
+        Image mandelbrotImage = mandelbrot.getImage(options.getMaxThreads(), options.getGranularityLevel());
+        mandelbrotImage.export(options.getOutputImageFilename());
     }
 
-    private static CommandLine getCommandLineParser(String[] args) {
+    private static MandelbrotCommandOptions getOptions(String[] args) {
         CommandLineParser commandLineParser = new DefaultParser();
 
         Options options = new Options();
@@ -59,6 +42,13 @@ public class Main {
             System.exit(1);
         }
 
-        return commandLine;
+        MandelbrotCommandOptions commandOptions = new MandelbrotCommandOptions(
+                commandLine.getOptionValue("s"),
+                commandLine.getOptionValue("r"),
+                commandLine.getOptionValue("t"),
+                commandLine.getOptionValue("o"),
+                commandLine.getOptionValue("g"));
+
+        return commandOptions;
     }
 }
